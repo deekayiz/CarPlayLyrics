@@ -1,0 +1,67 @@
+name: Build IPA
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Build (unsigned)
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project CarPlayLyrics.xcodeproj \
+            -scheme CarPlayLyrics \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            AD_HOC_CODE_SIGNING_ALLOWED=YES \
+            clean build
+
+      - name: Ad-hoc sign with entitlements and package IPA
+        run: |
+          APP="build/Build/Products/Release-iphoneos/CarPlayLyrics.app"
+          test -d "$APP"
+          codesign --force --sign - --entitlements Config/Widget.entitlements \
+            "$APP/PlugIns/CarPlayLyricsWidget.appex" || echo "widget ad-hoc sign skipped"
+          codesign --force --sign - --entitlements Config/App.entitlements \
+            "$APP" || echo "app ad-hoc sign skipped"
+          rm -rf Payload CarPlayLyrics-unsigned.ipa
+          mkdir Payload
+          cp -R "$APP" Payload/
+          zip -qry CarPlayLyrics-unsigned.ipa Payload
+          ls -lh CarPlayLyrics-unsigned.ipa
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CarPlayLyrics-unsigned-ipa
+          path: CarPlayLyrics-unsigned.ipa
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: CarPlay Lyrics build ${{ github.run_number }}
+          files: CarPlayLyrics-unsigned.ipa
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
