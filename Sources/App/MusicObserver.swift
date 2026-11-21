@@ -219,7 +219,7 @@ final class MusicObserver: ObservableObject {
             return ("No synced lyrics", "")
         case .loaded:
             let p = lyrics?.position(at: player.currentPlaybackTime + syncOffset) ?? ("", "")
-            return (p.current.isEmpty ? "♪" : p.current, p.next)
+            return (p.0.isEmpty ? "♪" : p.0, p.1)
         }
     }
 
