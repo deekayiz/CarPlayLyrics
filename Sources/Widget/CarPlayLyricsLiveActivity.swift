@@ -67,6 +67,8 @@ struct CarPlayLyricsLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: LyricsActivityAttributes.self) { context in
             LyricsActivityView(state: context.state)
+                .activityBackgroundTint(Color.black)
+                .activitySystemActionForegroundColor(Color.white)
         } dynamicIsland: { context in
             DynamicIsland {
                 DynamicIslandExpandedRegion(.center) {
@@ -99,8 +101,6 @@ struct CarPlayLyricsLiveActivity: Widget {
                 Image(systemName: "music.note").foregroundStyle(.pink)
             }
         }
-        .activityBackgroundTint(Color.black)
-        .activitySystemActionForegroundColor(Color.white)
         .supplementalActivityFamilies([.small])
     }
 }
